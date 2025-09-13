@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Smart Campus Assistant (AI-like)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
+  <style>
+    body {
+      margin: 0; font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh;
+    }
+    .container {
+      width: 95%; max-width: 780px; background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(12px); border-radius: 20px; padding: 20px;
+      display: flex; flex-direction: column; height: 90vh;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    h1 { margin: 0 0 10px; text-align: center; font-size: 22px; }
+    #chat { flex: 1; overflow-y: auto; padding: 12px; }
+    .msg { display: flex; gap: 10px; margin: 10px 0; animation: fadeIn 0.4s ease; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; display:flex;align-items:center;justify-content:center;font-weight:bold; }
+    .user .avatar { background:#34d399; color:#000; }
+    .bot .avatar { background:#60a5fa; color:#fff; }
+    .bubble { padding: 10px 14px; border-radius: 14px; max-width: 75%; line-height: 1.4; }
+    .user .bubble { background:#34d399; color:#000; margin-left:auto; }
+    .bot .bubble { background:#f1f5f9; color:#111; }
+    #inputRow { display:flex; margin-top:10px; gap:8px; }
+    #message { flex:1; padding:12px; border-radius:12px; border:none; font-size:15px; outline:none; }
+    button { padding:12px 16px; border-radius:12px; border:none; cursor:pointer; background:#2563eb; color:#fff; font-weight:bold; }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:translateY(0);} }
+    @keyframes blink { 50% { opacity: 0.3; } }
+    .typing span { animation: blink 1s infinite; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 Smart Campus Assistant</h1>
+    <div id="chat"></div>
+
+    <div id="inputRow">
+      <input id="message" placeholder="Ask me anything about campus…" />
+      <button id="send">Send</button>
+    </div>
+  </div>
+
+  <script>
+    // ---------------- Knowledge Base ----------------
+    const KB = [
+      { topic: "library", answer: "📚 The library is open Monday–Friday 8 AM to 10 PM, and Saturday–Sunday 10 AM to 6 PM." },
+      { topic: "cafeteria", answer: "🍴 The cafeteria serves breakfast 7:30–9:30, lunch 12–2, and dinner 6–8." },
+      { topic: "registrar", answer: "📝 The registrar’s office is in Admin Block A, Room 210. Email: registrar@univ.edu. Office hours: 9 AM–4 PM weekdays." },
+      { topic: "bus", answer: "🚌 Campus shuttle runs every 15 mins on weekdays (7 AM–11 PM) and every 30 mins on weekends (9 AM–8 PM)." },
+      { topic: "transcripts", answer: "📄 Transcripts can be requested via the registrar portal. Normal processing: 3–5 business days. Express option available." }
+    ];
+
+    // ---------------- Fuse.js for semantic search ----------------
+    const fuse = new Fuse(KB, {
+      keys: ["topic","answer"],
+      includeScore: true,
+      threshold: 0.4 // smaller = stricter
+    });
+
+    // ---------------- UI ----------------
+    const chat=document.getElementById("chat");
+    const input=document.getElementById("message");
+    const send=document.getElementById("send");
+
+    function addMsg(text, who="bot", typing=false){
+      const wrap=document.createElement("div"); wrap.className="msg "+who;
+      const avatar=document.createElement("div"); avatar.className="avatar"; avatar.textContent=who==="user"?"U":"🤖";
+      const bubble=document.createElement("div"); bubble.className="bubble"; bubble.innerHTML=text;
+      wrap.appendChild(avatar); wrap.appendChild(bubble);
+      chat.appendChild(wrap); chat.scrollTop=chat.scrollHeight;
+      if(typing) bubble.classList.add("typing");
+      return bubble;
+    }
+
+    function sendMessage(){
+      const q=input.value.trim(); if(!q) return;
+      addMsg(q,"user");
+      input.value="";
+      const bubble=addMsg("<span>.</span><span>.</span><span>.</span>","bot",true);
+
+      setTimeout(()=>{
+        bubble.classList.remove("typing");
+        const results=fuse.search(q);
+        if(results.length){
+          bubble.innerHTML=results[0].item.answer;
+        } else {
+          bubble.innerHTML="❓ I couldn’t find that info. Try asking about <b>library, cafeteria, bus, registrar, or transcripts</b>.";
+        }
+      }, 1000);
+    }
+
+    send.onclick=sendMessage;
+    input.addEventListener("keydown",e=>{ if(e.key==="Enter") sendMessage(); });
+
+    // Greeting
+    addMsg("Hello 👋 I’m your AI campus assistant. Ask me about schedules, dining, library services, or transcripts.");
+  </script>
+</body>
+</html>
